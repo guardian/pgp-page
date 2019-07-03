@@ -6,6 +6,10 @@ Parameters:
     Description: The VPC in which SecureContact will run
     Type: AWS::EC2::VPC::Id
 
+  Subnets:
+    Description: Choose which subnets this ECS cluster should be deployed to
+    Type: List<AWS::EC2::Subnet::Id>
+
   AMI:
     Description: Base AMI for SecureContact instances
     Type: AWS::EC2::Image::Id
@@ -45,7 +49,7 @@ Mappings:
     App:
       Value: secure-contact
     Stack:
-      Value: infosec
+      Value: secure-contact
 
 Resources:
   DataBucket:
@@ -177,6 +181,68 @@ Resources:
       Roles:
       - !Ref SecureContactInstanceRole
 
+  SecureContactRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: secure-contact
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+              - !Ref AWS::AccountId
+            Action:
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:PutImage
+              - ecr:InitiateLayerUpload
+              - ecr:UploadLayerPart
+              - ecr:CompleteLayerUpload
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref secure-contact
+
+  ECSAutoScalingGroup:
+    DependsOn: ECSCluster
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref Subnets
+      LaunchConfigurationName: !Ref LaunchConfig
+      MinSize: 0
+      MaxSize: 1
+      DesiredCapacity: 1
+      Tags:
+        - Key: App
+          Value:
+            Fn::FindInMap: [ Constants, App, Value ]
+          PropagateAtLaunch: true
+        - Key: Stack
+          Value:
+            Fn::FindInMap: [ Constants, Stack, Value ]
+          PropagateAtLaunch: true
+        - Key: Stage
+          Value: !Ref Stage
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT15M
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AZRebalance
+          - AlarmNotification
+          - ScheduledActions
+        WaitOnResourceSignals: true
+
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -225,17 +291,3 @@ Resources:
 
           # setup secure-contact
           adduser --system --home /secure-contact --disabled-password secure-contact
-
-          aws --region eu-west-1 s3 cp s3://${ArtifactBucket}/secure-contact/${Stage}/secure-contact.json /secure-contact
-          aws --region eu-west-1 s3 cp s3://${ArtifactBucket}/secure-contact/${Stage}/secure-contact.tgz /secure-contact
-
-          # Expand zipped tar file; remove base directory
-          tar -xzf /secure-contact/secure-contact.tgz --strip 1 --directory /secure-contact/
-
-          # TODO: this should be done as part of the build and bundle
-          # pip3 install -r requirements.txt
-
-          # Give ownership of all the application files to the application user
-          chown -R secure-contact /secure-contact
-
-          # Start application
