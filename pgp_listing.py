@@ -68,7 +68,9 @@ def render_page(groups: List[Group]):
 
 if __name__ == '__main__':
 
-    all_entries = pgp_manager.main()
+    session = pgp_manager.create_session()
+
+    all_entries = pgp_manager.get_all_entries(session)
 
     enhanced_entries = [enhance_entry(entry) for entry in all_entries]
     all_groups = create_groups(sort_entries(enhanced_entries))
@@ -78,7 +80,7 @@ if __name__ == '__main__':
         shutil.rmtree('./build')
 
     print('copying static assets')
-    shutil.copytree('./static', './build')
+    shutil.copytree('./static', './build/static')
 
     print('Creating templates')
     text_file = open("build/index.html", "w")
