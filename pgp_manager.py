@@ -43,9 +43,8 @@ def generate_entry(s3_client, bucket: str, key: str) -> Entry:
     return Entry(contact_name, key, fingerprint)
 
 
-def create_s3_client(profile = None):
-    session = boto3.Session(profile_name=profile)
-    return session.client('s3')
+def create_session(profile=None) -> Session:
+    return boto3.Session(profile_name=profile)
 
 
 def get_matching_s3_objects(s3_client, bucket: str, prefix: str) -> List[Dict[str, Any]]:
@@ -92,31 +91,6 @@ def copy_keys_to_public_bucket(s3_client, source_bucket: str, destination_bucket
         s3_client.copy(copy_source, destination_bucket, key)
 
 
-def create_session(profile=None) -> Session:
-    return boto3.Session(profile_name=profile)
-
-
-# fetch all of the required data from S3 and return a List containing an Entry for each contact
-def get_all_entries(session: Session) -> List[Entry]:
-
-    if os.getenv('STAGE'):
-        DATA_BUCKET_NAME = os.getenv('DATA_BUCKET_NAME')
-        PUBLIC_BUCKET_NAME = os.getenv('PUBLIC_BUCKET_NAME')
-        AWS_PROFILE = os.getenv('AWS_PROFILE')
-    else:
-        config_path = os.path.expanduser('~/.gu/secure-contact.json')
-        config = json.load(open(config_path))
-        DATA_BUCKET_NAME = config['DATA_BUCKET_NAME']
-        PUBLIC_BUCKET_NAME = config['PUBLIC_BUCKET_NAME']
-        AWS_PROFILE = config['AWS_PROFILE']
-
-    # create the client that we will use to access AWS S3
-    client = create_s3_client(AWS_PROFILE)
-    public_keys = list(get_matching_s3_keys(client, DATA_BUCKET_NAME, 'PublicKeys/'))
-    copy_keys_to_public_bucket(client, DATA_BUCKET_NAME, PUBLIC_BUCKET_NAME, public_keys)
-    return [generate_entry(client, DATA_BUCKET_NAME, key) for key in public_keys]
-
-
 def get_content_type(filename: str) -> str:
     if filename.endswith('.html'):
         return 'text/html'
@@ -136,13 +110,28 @@ def upload_files(session: Session, bucket: str, path: str) -> None:
                 bucket.upload_file(full_path, full_path[len(path)+1:], ExtraArgs={'ContentType': content_type})
 
 
+# fetch all of the required data from S3 and return a List containing an Entry for each contact
+def get_all_entries(session: Session, data_bucket: str, public_bucket: str) -> List[Entry]:
+    client = session.client('s3')
+    public_keys = list(get_matching_s3_keys(client, data_bucket, 'PublicKeys/'))
+    copy_keys_to_public_bucket(client, data_bucket, public_bucket, public_keys)
+    return [generate_entry(client, data_bucket, key) for key in public_keys]
+
+
 if __name__ == "__main__":
-    config_path = os.path.expanduser('~/.gu/secure-contact.json')
-    config = json.load(open(config_path))
 
-    session = create_session(config['AWS_PROFILE'])
+    if os.getenv('STAGE'):
+        DATA_BUCKET_NAME = os.getenv('DATA_BUCKET_NAME')
+        PUBLIC_BUCKET_NAME = os.getenv('PUBLIC_BUCKET_NAME')
+        AWS_PROFILE = os.getenv('AWS_PROFILE')
+    else:
+        config_path = os.path.expanduser('~/.gu/secure-contact.json')
+        config = json.load(open(config_path))
+        DATA_BUCKET_NAME = config['DATA_BUCKET_NAME']
+        PUBLIC_BUCKET_NAME = config['PUBLIC_BUCKET_NAME']
+        AWS_PROFILE = config['AWS_PROFILE']
 
-    DATA_BUCKET_NAME = config['DATA_BUCKET_NAME']
+    session = create_session(AWS_PROFILE)
+    get_all_entries(session, DATA_BUCKET_NAME, PUBLIC_BUCKET_NAME)
 
-    get_all_entries(session)
-    upload_files(session, config['PUBLIC_BUCKET_NAME'], './build')
+    upload_files(session, PUBLIC_BUCKET_NAME, './build')
