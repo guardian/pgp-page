@@ -15,32 +15,23 @@
     </section>
     <section class="row">
         <div class="section-content container gu-padding">
-            <p>
-                When corresponding with our journalists there are times where anonymity is not a priority, but the
-                aim is to keep the conversation private. In such situations it may be appropriate to use email, but with
-                an additional layer of security.
+            <p class="gu-text">
+                The Guardian takes source protection seriously. If you want to email a Guardian journalist, but you're worried that your email could be read by someone else, public key encryption can add an extra layer of security.
             </p>
-            <p>
-                Encrypting the contents of an email using public key cryptographic methods is a good way to avoid
-                compromising the content.
+            <p class="gu-text">
+                A safely encrypted email cannot be read in transit by email or internet service providers, or by other people who somehow gain access to the message. All being well, it can only be decrypted by the people you encrypted it for.
             </p>
-            <p>
-
-                The Guardian uses a third party cloud email solution. Mail and document encryption can also help
-                stop a third party from reading the contents of a conversation.
+            <p class="gu-text">
+                You do this by means of a person's "public key", which, as the name suggests, can be used by anyone. It allows you to encrypt material specifically for whoever owns a corresponding "private key". That private key is secret to the recipient of the encrypted material, and is used to decrypt the message back into something they can read.
             </p>
-            <p>
-
-                This page contains public keys of Guardian staff. To send an encrypted message to a journalist you
-                will need to create your own keys and then encrypt the message using both your keys and the journalist’s
-                public key.
+            <p class="gu-text">
+                This page carries links to the public keys of several Guardian journalists. You can use them to encrypt both messages and attachments that you wish to send to those journalists.
             </p>
-            <p>
-                There are many different implementations of public key cryptography. At the Guardian we have opted for
-                an open source implementation of the OpenPGP standard. As with any public key cryptography
-                implementation, there may be software incompatibilities. We will do our best to resolve discrepancies,
-                but some issues may be beyond the capabilities of our technological implementation. The Guardian does
-                not endorse any particular PGP integration or application.
+            <p class="gu-text">
+                To correspond back and forth using public key encryption, you will also need to create your own private and public keys. You would keep the former to yourself, and share the latter with the Guardian journalist so they can encrypt their messages to you.
+            </p>
+            <p class="gu-text">
+                There are many online sources explaining how to make keys and how to encrypt messages and documents. The most popular software is free to use. The Guardian does not endorse any particular application.
             </p>
 
         </div>
@@ -80,8 +71,15 @@
     <section class="row section-terms">
         <div class="container gu-padding">
             <h6 class="section-terms__title">Terms and conditions</h6>
-            <p class="section-terms__text">Use of The Guardian PGP public keys for encrypting email contents is at the user's own risk.</p>
-            <p class="section-terms__text">Guardian PGP Public keys may be found on third party key servers. We cannot vouch for those third parties key stores but can vouch for the validity of keys on this site.</p>
+            <p class="section-terms__text">
+                Use of the Guardian's PGP public keys for encrypting email and document contents is at the user's own risk.
+            </p>
+            <p class="section-terms__text">
+                Guardian journalists' PGP public keys may also be found on third party key servers. We cannot vouch for those key stores but can vouch for the validity of keys on this site.
+            </p>
+            <p class="section-terms__text">
+                We have opted for an open source implementation of the OpenPGP standard. As with any public key cryptography implementation, there may be software incompatibilities, although these should be rare. We will do our best to resolve discrepancies, but some issues may be beyond the capabilities of our technological implementation.
+            </p>
         </div>
     </section>
 

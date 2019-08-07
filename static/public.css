@@ -13,10 +13,6 @@
     display: none;
 }
 
-.gu-padding {
-    padding: 12px;
-}
-
 .row {
     margin: 0;
 }
@@ -81,6 +77,16 @@ ol {
 .gu-icon {
     vertical-align: middle;
     fill: #fff;
+}
+
+.gu-padding {
+    padding: 12px;
+}
+
+.gu-text {
+    line-height: 24px;
+    font-size: 17px;
+    margin-bottom: 12px;
 }
 
 /*
