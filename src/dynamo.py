@@ -3,7 +3,7 @@ import json
 import numbers
 import time
 from collections.abc import Iterable, Mapping, ByteString, Set
-from typing import Dict
+from typing import Dict, List
 
 from boto3.dynamodb.conditions import Attr
 
@@ -67,7 +67,7 @@ def write_to_database(dynamodb, table_name: str, item: Dict[str, str]):
     monitor_table.put_item(Item=dump_to_dynamodb(item))
 
 
-def read_from_database(dynamodb, table_name: str) -> Dict[str, str]:
+def read_from_database(dynamodb, table_name: str) -> List[Dict[str, str]]:
     table = dynamodb.Table(table_name)
     current_time = int(time.time())
     cutoff_time = current_time - 6000
@@ -77,4 +77,4 @@ def read_from_database(dynamodb, table_name: str) -> Dict[str, str]:
         FilterExpression=filter_expression,
         Limit=10
     )
-    return response
+    return response['Items']

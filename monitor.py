@@ -8,7 +8,7 @@ from requests.exceptions import RequestException
 
 from notifications import create_message, send_message, send_email
 from securedrop import build_pages
-from src.aws_helpers import read_from_database, write_to_database
+from src.dynamo import read_from_database, write_to_database
 
 
 def get_stage(filename: str) -> str:
