@@ -1,4 +1,5 @@
 import json
+import logging.handlers
 from typing import Dict
 
 import requests
@@ -7,6 +8,14 @@ from botocore.exceptions import ClientError
 from requests.exceptions import RequestException
 
 CHARSET = "UTF-8"
+
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt='%m-%d %H:%M'
+                    )
+
+logger = logging.getLogger('securecontact.notifications')
 
 
 def generate_text(heading: str, text: str) -> str:
@@ -65,10 +74,10 @@ def send_email(session: Session, config: Dict[str, str], message: Dict):
         )
     # TODO: use logging library instead and send logs somewhere sensible
     except ClientError as e:
-        print(e.response['Error']['Message'])
+        logger.error(e.response['Error']['Message'])
     else:
-        print('Email sent! Message ID:')
-        print(response['MessageId'])
+        logger.info('Email sent! Message ID:')
+        logger.info(response['MessageId'])
 
 
 def generate_card(title: str, subtitle: str) -> Dict:
@@ -93,7 +102,7 @@ def send_message(config: Dict[str, str], passed: bool):
 
     try:
         response = requests.post(url=config['PRODMON_WEBHOOK'], headers=headers, data=card)
-        print(f'Message sent to Hangouts Chat!')
-        print(f'Status code {response.status_code} returned from chat.googleapis.com')
+        logger.info(f'Message sent to Hangouts Chat!')
+        logger.info(f'Status code {response.status_code} returned from chat.googleapis.com')
     except RequestException as err:
-        print(err)
+        logger.error(err)

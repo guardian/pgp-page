@@ -1,6 +1,8 @@
 import os
 import time
-from typing import Optional, Union, Dict
+import logging
+
+from typing import Optional, Union, Dict, List
 
 import requests
 from boto3 import Session
@@ -9,6 +11,14 @@ from requests.exceptions import RequestException
 from notifications import create_message, send_message, send_email
 from securedrop import build_pages
 from src.dynamo import read_from_database, write_to_database
+
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt='%m-%d %H:%M'
+                    )
+
+logger = logging.getLogger('securecontact.monitor')
 
 
 def get_stage(filename: str) -> str:
@@ -39,7 +49,7 @@ def fetch_parameter(client, name: str) -> Union[str, None]:
         response = client.get_parameter(Name=name, WithDecryption=True)
         return response['Parameter']['Value']
     except client.exceptions.ParameterNotFound:
-        print(f'parameter not found: {name}')
+        logger.warning(f'parameter not found: {name}')
         return None
 
 
@@ -58,13 +68,13 @@ def send_request(onion_address: str) -> Optional[requests.Response]:
     try:
         return requests.get(target, headers=headers, proxies=proxies, timeout=10)
     except RequestException as err:
-        print(err)
+        logger.error(err)
 
 
 def healthcheck(response: Optional[requests.Response]) -> bool:
     expected_text = 'SecureDrop | Protecting Journalists and Sources'
     if response:
-        print(f'response status code: {response.status_code}')
+        logger.info(f'response status code: {response.status_code}')
         if response.status_code == 200 and expected_text in response.text:
             return True
     return False
@@ -110,18 +120,19 @@ def send_failure_email(session: Session, config: Dict[str, str]):
     send_email(session, config, create_message(subject, heading, message))
 
 
-def state_has_changed(healthy: bool, history: Dict[str, str]) -> bool:
-    # TODO: compare result of latest check with previous records
+def state_has_changed(healthy: bool, history: List[Dict[str, str]]) -> bool:
+    # TODO: compare result of latest check with previous record
     pass
 
 
-def monitor(session: Session, config: Dict[str, str]):
-    dynamodb = create_service_resource(session, config['STAGE'])
+def monitor(session: Session, config: Dict[str, str], stage: str):
+    dynamodb = create_service_resource(session, stage)
     response = send_request(config['SECUREDROP_URL'])
     history = read_from_database(dynamodb, config['TABLE_NAME'])
     healthy = healthcheck(response)
 
-    print(f'Healthcheck outcome: {healthy}')
+    logger.info(f'Healthcheck outcome: {healthy}')
+    logger.debug(history)
 
     # TODO: perform update once per day regardless and give MOTD
     if state_has_changed(healthy, history):
@@ -143,25 +154,26 @@ def run(session: Session, config: Dict[str, str]):
         response = send_request(config['SECUREDROP_URL'])
         passes_healthcheck = healthcheck(response)
         if passes_healthcheck:
-            print(f'Healthcheck: passed on attempt {attempts}')
+            logger.info(f'Healthcheck: passed on attempt {attempts}')
             upload_website_index(session, config, passes_healthcheck)
             send_message(config, passes_healthcheck)
             break
-        print(f'Healthcheck: unable to reach site on attempt {attempts}')
+        logger.info(f'Healthcheck: unable to reach site on attempt {attempts}')
         time.sleep(60)
     else:
         send_message(config, passed=False)
         send_failure_email(session, config)
-        print('Healthcheck: failed healthcheck')
+        logger.info('Healthcheck: failed healthcheck')
 
 
 if __name__ == '__main__':
+
     STAGE = get_stage('/etc/stage')
     AWS_PROFILE = 'infosec' if STAGE == 'DEV' else None
     SESSION = create_session(profile=AWS_PROFILE)
     SSM_CLIENT = SESSION.client('ssm')
 
-    print(f'Fetching configuration for stage={STAGE} and profile={AWS_PROFILE}')
+    logger.info(f'Fetching configuration for stage={STAGE} and profile={AWS_PROFILE}')
 
     CONFIG = {
         'BUCKET_NAME': fetch_parameter(SSM_CLIENT, f'/secure-contact/{STAGE}/securedrop-public-bucket'),
