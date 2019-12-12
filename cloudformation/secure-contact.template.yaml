@@ -20,6 +20,10 @@ Metadata:
       - AMI
       - Stage
       - PublicBucket
+    - Label:
+        default: Other
+      Parameters:
+      - AlertEmail
 
 Mappings:
   Constants:
@@ -60,6 +64,11 @@ Parameters:
   PublicBucket:
     Description: Name of the public S3 bucket that hosts the website
     Type: String
+
+  AlertEmail:
+    Description: Email notified if the healtcheck failed
+    Type: String
+
 
 Resources:
 
@@ -352,6 +361,31 @@ Resources:
         Value: !Sub ${AWS::StackName}
         PropagateAtLaunch: true
 
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub Secure Contact ${Stage} notification topic
+      Subscription:
+        - Endpoint: !Ref AlertEmail
+          Protocol: email
+
+  NotificationTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action:
+              - SNS:Publish
+            Principal:
+              AWS: !Ref AWS::AccountId
+            Resource: "*"
+      Topics:
+        - !Ref NotificationTopic
+
 Outputs:
   LoadBalancerUrl:
     Value: !GetAtt LoadBalancer.DNSName
+
+  TopicName:
+    Value: !GetAtt NotificationTopic.TopicName
