@@ -1,8 +1,9 @@
 import unittest
 import boto3
+import time
 
-from monitor import *
-from src.aws_helpers import write_to_database, read_from_database
+from src.monitor import create_item
+from src.dynamo import write_to_database, read_from_database
 
 # !! ~~ Only use this module for local testing ~~ !!
 
