@@ -184,6 +184,8 @@ if __name__ == '__main__':
         'TABLE_NAME': f'MonitorHistory-{STAGE}'
     }
 
+    monitor(SESSION, CONFIG, STAGE)
+
     if CONFIG['BUCKET_NAME'] is not None:
         build_pages(CONFIG['SECUREDROP_URL'], STAGE)
         run(SESSION, CONFIG)

@@ -1,6 +1,6 @@
 import unittest
 
-from monitor import *
+from src.monitor import *
 
 
 class TestMonitor(unittest.TestCase):
