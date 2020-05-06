@@ -8,7 +8,7 @@ import requests
 from boto3 import Session
 from requests.exceptions import RequestException
 
-from notifications import create_message, send_message, send_email
+from src.notifications import create_email, send_message, send_email
 from securedrop import build_pages
 from src.dynamo import read_from_database, write_to_database
 
@@ -117,7 +117,7 @@ def send_failure_email(session: Session, config: Dict[str, str]):
     heading = 'SecureDrop Status Update'
     message = ("Monitor will attempt to update the page content. \n"
                "Please check that the update has been applied.")
-    send_email(session, config, create_message(subject, heading, message))
+    send_email(session, config, create_email(subject, heading, message))
 
 
 def state_has_changed(healthy: bool, history: List[Dict[str, str]]) -> bool:
